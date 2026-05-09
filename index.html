@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Westside LA · Home Value Index</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --cream:   #f5f0e8;
+      --sand:    #e8dfc9;
+      --ink:     #1a1814;
+      --muted:   #7a7060;
+      --accent:  #c1440e;
+      --c1:      #2c6e8a;
+      --c2:      #c1440e;
+      --c3:      #4a7c59;
+      --c4:      #8a5a2c;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 64px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    header p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: var(--accent);
+      margin: 16px auto 0;
+    }
+
+    /* ZIP selector */
+    .zip-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 40px;
+    }
+
+    .zip-btn {
+      position: relative;
+      background: white;
+      border: 1.5px solid var(--sand);
+      border-radius: 4px;
+      padding: 14px 18px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .zip-btn:hover {
+      border-color: var(--ink);
+    }
+
+    .zip-btn.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--cream);
+    }
+
+    .zip-btn .code {
+      font-size: 1.05rem;
+      font-weight: 500;
+      display: block;
+    }
+
+    .zip-btn .name {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 3px;
+      color: var(--muted);
+    }
+
+    .zip-btn.active .name {
+      color: rgba(245,240,232,0.6);
+    }
+
+    .zip-btn .swatch {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Date range */
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .range-row select {
+      background: white;
+      border: 1.5px solid var(--sand);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .range-row select:focus { border-color: var(--ink); }
+
+    /* Chart */
+    .chart-wrap {
+      width: 100%;
+      max-width: 860px;
+      background: white;
+      border: 1.5px solid var(--sand);
+      border-radius: 6px;
+      padding: 32px 28px 24px;
+      position: relative;
+    }
+
+    .chart-wrap canvas { display: block; }
+
+    /* Stats row */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 860px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1.5px solid var(--sand);
+      border-radius: 4px;
+      padding: 18px 20px;
+      border-top-width: 3px;
+    }
+
+    .stat-card .label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-card .zip-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .stat-card .value {
+      font-size: 1.15rem;
+      font-weight: 500;
+    }
+
+    .stat-card .delta {
+      font-size: 0.72rem;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .delta.up   { color: #2a7a3b; }
+    .delta.down { color: var(--accent); }
+
+    /* Status */
+    #status {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Chart mode toggle */
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      width: 100%;
+      max-width: 860px;
+      justify-content: flex-end;
+    }
+
+    .toggle-group {
+      display: flex;
+      border: 1.5px solid var(--sand);
+      border-radius: 4px;
+      overflow: hidden;
+      font-size: 0.72rem;
+    }
+
+    .toggle-btn {
+      background: white;
+      border: none;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1.5px solid var(--sand);
+    }
+
+    .toggle-btn:last-child { border-right: none; }
+
+    .toggle-btn.active {
+      background: var(--ink);
+      color: var(--cream);
+    }
+
+    .toggle-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    footer {
+      margin-top: 48px;
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    /* Snapshot table */
+    .table-section {
+      width: 100%;
+      max-width: 860px;
+      margin-top: 40px;
+    }
+
+    .table-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .table-section p.table-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .snapshot-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1.5px solid var(--sand);
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 0.78rem;
+    }
+
+    .snapshot-table thead tr {
+      background: var(--ink);
+      color: var(--cream);
+    }
+
+    .snapshot-table th {
+      padding: 12px 16px;
+      text-align: right;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .snapshot-table th:first-child {
+      text-align: left;
+    }
+
+    .snapshot-table th .zip-code {
+      display: block;
+      font-size: 0.9em;
+    }
+
+    .snapshot-table th .zip-name {
+      display: block;
+      font-size: 0.68em;
+      opacity: 0.6;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .snapshot-table th .color-bar {
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+      margin-top: 6px;
+      margin-left: auto;
+      width: 32px;
+    }
+
+    .snapshot-table tbody tr {
+      border-bottom: 1px solid var(--sand);
+      transition: background 0.15s;
+    }
+
+    .snapshot-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .snapshot-table tbody tr:hover {
+      background: #faf7f2;
+    }
+
+    .snapshot-table tbody tr.highlight-row {
+      background: #f0ece2;
+      font-weight: 500;
+    }
+
+    .snapshot-table tbody tr.highlight-row:hover {
+      background: #ece7d8;
+    }
+
+    .snapshot-table td {
+      padding: 11px 16px;
+      text-align: right;
+      color: var(--ink);
+    }
+
+    .snapshot-table td:first-child {
+      text-align: left;
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .snapshot-table td.latest-label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .snapshot-table td.no-data {
+      color: #ccc;
+      font-size: 0.7rem;
+    }
+
+    .snapshot-table tfoot tr {
+      background: #1a1814;
+      color: var(--cream);
+      font-weight: 500;
+    }
+
+    .snapshot-table tfoot td {
+      padding: 12px 16px;
+      text-align: right;
+      border-top: 2px solid var(--accent);
+      color: var(--cream);
+    }
+
+    .snapshot-table tfoot td:first-child {
+      text-align: left;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .growth-positive { color: #6fcf8a !important; font-weight: 600; }
+    .growth-negative { color: #f08060 !important; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Westside LA<br>Home Value Index</h1>
+  <div class="divider"></div>
+  <p>Single-family homes · Top-tier ZHVI by zip code · Zillow Research</p>
+  <p style="margin-top:8px; color:var(--muted); font-size:0.65rem; letter-spacing:0.04em;">
+    Series: <em>Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv</em> · ZHVI Single-Family Residences, Top-Tier (67th–100th pctile), Smoothed &amp; Seasonally Adjusted ·
+    Source: <a href="https://www.zillow.com/research/data/" target="_blank" style="color:var(--accent); text-decoration:none;">Zillow Research Data</a> (files.zillowstatic.com), updated monthly
+  </p>
+</header>
+
+<div id="status">Loading Zillow &amp; SPY data…</div>
+
+<div class="zip-grid" id="zipGrid"></div>
+
+<div class="range-row">
+  <span>Show</span>
+  <select id="rangeSelect">
+    <option value="sept2021" selected>Sept 2021 to latest</option>
+    <option value="5">5 years</option>
+    <option value="10">10 years</option>
+    <option value="20">20 years</option>
+    <option value="all">All available</option>
+  </select>
+  <span>of history</span>
+</div>
+
+<div class="chart-controls">
+  <span class="toggle-label">Chart mode:</span>
+  <div class="toggle-group">
+    <button class="toggle-btn active" id="modeActual">Actual</button>
+    <button class="toggle-btn" id="modeIndexed">Relative</button>
+  </div>
+</div>
+
+<div class="chart-wrap">
+  <canvas id="myChart" height="360"></canvas>
+</div>
+
+<div class="stats-grid" id="statsGrid"></div>
+
+<div class="table-section">
+  <h2>Snapshot Comparison</h2>
+  <p class="table-sub">ZHVI · Single-family homes · Selected dates</p>
+  <table class="snapshot-table" id="snapshotTable">
+    <thead><tr id="tableHead"></tr></thead>
+    <tbody id="tableBody"></tbody>
+    <tfoot><tr id="tableFoot"></tr></tfoot>
+  </table>
+</div>
+
+<div style="width:100%; max-width:860px; margin-top:28px; background:white; border:1.5px solid #e8dfc9; border-left:4px solid #c1440e; border-radius:4px; padding:20px 24px; box-sizing:border-box;">
+  <p style="font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; margin-bottom:8px; color:#1a1814;">About the Zillow Home Value Index (ZHVI)</p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7;">
+    The ZHVI is Zillow's estimate of the <strong style="color:#1a1814;">typical home value</strong> within a given region — not the median sale price. It is calculated from Zillow's Zestimate valuations across all homes in a zip code, not just those that recently sold, which makes it more stable and less susceptible to short-term fluctuations in sales mix.
+  </p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7; margin-top:10px;">
+    This dashboard uses the <strong style="color:#1a1814;">top-tier cut</strong> (65th–100th percentile), meaning it tracks the upper segment of the market in each zip code — the higher-value homes, not the middle of the distribution. Values are <strong style="color:#1a1814;">smoothed and seasonally adjusted</strong> to reduce month-to-month noise.
+  </p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7; margin-top:10px;">
+    The <strong style="color:#1a1814;">Relative</strong> chart mode re-indexes each zip code to 100% at the start of the selected period, allowing direct comparison of <em>growth rates</em> regardless of absolute price levels — this is where the <strong style="color:#7c4a9e;">SPY</strong> overlay is most useful, as it lets you compare home appreciation directly against S&P 500 returns. The <strong style="color:#1a1814;">Actual</strong> mode shows raw dollar values (SPY shown in share price). SPY data is the closing price on the first trading day of each month, sourced from Yahoo Finance.
+  </p>
+</div>
+
+<footer>
+  Source: Zillow Home Value Index (ZHVI) · Single-Family Residences · files.zillowstatic.com
+</footer>
+
+<script>
+  const ZIPS = [
+    { zip: '90049', name: 'Brentwood',        hex: '#2c6e8a' },
+    { zip: '90402', name: 'Santa Monica',      hex: '#c1440e' },
+    { zip: '90272', name: 'Pacific Palisades', hex: '#4a7c59' },
+    { zip: '90265', name: 'Malibu',            hex: '#8a5a2c' },
+  ];
+
+  const SPY_META = { key: 'SPY', name: 'S&P 500 (SPY)', hex: '#7c4a9e' };
+
+  const CSV_URL = 'https://files.zillowstatic.com/research/public_csvs/zhvi/Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv';
+
+  let allData = {};   // zip -> [{date, value}]
+  let spyData  = [];  // [{date: 'YYYY-MM-DD', value: close}] — first trading day of each month
+  let activeZips = new Set(ZIPS.map(z => z.zip));
+  let spyActive = true;
+  let chart = null;
+  let indexedMode = false;
+
+  // ---- Build ZIP buttons ----
+  const grid = document.getElementById('zipGrid');
+  ZIPS.forEach(z => {
+    const btn = document.createElement('button');
+    btn.className = 'zip-btn active';
+    btn.dataset.zip = z.zip;
+    btn.style.borderTopColor = z.hex;
+    btn.innerHTML = `
+      <span class="code">${z.zip}</span>
+      <span class="name">${z.name}</span>
+      <span class="swatch" style="background:${z.hex}"></span>
+    `;
+    btn.addEventListener('click', () => {
+      if (activeZips.has(z.zip)) {
+        if (activeZips.size === 1) return; // keep at least one
+        activeZips.delete(z.zip);
+        btn.classList.remove('active');
+      } else {
+        activeZips.add(z.zip);
+        btn.classList.add('active');
+      }
+      updateChart();
+    });
+    grid.appendChild(btn);
+  });
+
+  // ---- SPY button — shown only in relative mode, placed below chart controls ----
+  (function() {
+    const btn = document.createElement('button');
+    btn.className = 'zip-btn active';
+    btn.id = 'spyBtn';
+    btn.style.borderTopColor = SPY_META.hex;
+    btn.style.display = 'none'; // hidden until relative mode
+    btn.innerHTML = `
+      <span class="code">SPY</span>
+      <span class="name">S&amp;P 500 ETF</span>
+      <span class="swatch" style="background:${SPY_META.hex}"></span>
+    `;
+    btn.addEventListener('click', () => {
+      spyActive = !spyActive;
+      btn.classList.toggle('active', spyActive);
+      updateChart();
+    });
+    // Insert it right after the chart-controls div
+    const controls = document.querySelector('.chart-controls');
+    controls.parentNode.insertBefore(btn, controls.nextSibling);
+    // Style it to align with the chart width
+    btn.style.maxWidth = '200px';
+    btn.style.marginBottom = '14px';
+    btn.style.alignSelf = 'flex-end';
+  })();
+
+  document.getElementById('rangeSelect').addEventListener('change', updateChart);
+
+  document.getElementById('modeActual').addEventListener('click', () => {
+    indexedMode = false;
+    document.getElementById('modeActual').classList.add('active');
+    document.getElementById('modeIndexed').classList.remove('active');
+    document.getElementById('spyBtn').style.display = 'none';
+    updateChart();
+  });
+  document.getElementById('modeIndexed').addEventListener('click', () => {
+    indexedMode = true;
+    document.getElementById('modeIndexed').classList.add('active');
+    document.getElementById('modeActual').classList.remove('active');
+    document.getElementById('spyBtn').style.display = '';
+    updateChart();
+  });
+
+  // ---- End-of-line label plugin ----
+  const endLabelPlugin = {
+    id: 'endLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea: { right }, scales: { y } } = chart;
+      ctx.save();
+      chart.data.datasets.forEach((ds, i) => {
+        const meta = chart.getDatasetMeta(i);
+        if (meta.hidden) return;
+        // Find last visible non-null point
+        const points = meta.data;
+        let lastPoint = null;
+        for (let j = points.length - 1; j >= 0; j--) {
+          if (ds.data[j] !== null && ds.data[j] !== undefined) {
+            lastPoint = points[j];
+            break;
+          }
+        }
+        if (!lastPoint) return;
+        const val = ds.data[chart.data.datasets[i] === ds
+          ? points.indexOf(lastPoint) : points.length - 1];
+
+        // Get the last non-null value
+        let lastVal = null;
+        for (let j = ds.data.length - 1; j >= 0; j--) {
+          if (ds.data[j] !== null && ds.data[j] !== undefined) {
+            lastVal = ds.data[j];
+            break;
+          }
+        }
+        if (lastVal === null) return;
+
+        const yPos = lastPoint.y;
+        const isSPY = ds.label.startsWith('SPY');
+        const label = indexedMode
+          ? lastVal.toFixed(1) + '%'
+          : isSPY
+            ? '$' + lastVal.toFixed(2)
+            : '$' + (lastVal >= 1e6 ? (lastVal/1e6).toFixed(2)+'M' : Math.round(lastVal/1e3)+'K');
+
+        // Second line: zip code or ticker
+        const zip = isSPY ? 'SPY' : ds.label.split(' · ')[0];
+
+        ctx.font = "500 13px 'DM Mono', monospace";
+        ctx.fillStyle = ds.borderColor;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, right + 6, yPos - 7);
+
+        ctx.font = "300 11px 'DM Mono', monospace";
+        ctx.fillText('(' + zip + ')', right + 6, yPos + 9);
+      });
+      ctx.restore();
+    }
+  };
+
+  Chart.register(endLabelPlugin);
+
+  // ---- Load SPY from Yahoo Finance chart API (daily → first trading day per month) ----
+  // ---- SPY monthly closing prices (first trading day of each month, adjusted close) ----
+  // Hardcoded from Sept 2021 → Apr 2025; live fetch will extend if available
+  const SPY_HARDCODED = [
+    ['2010-09-01',107.27],['2010-10-01',113.88],['2010-11-01',112.61],['2010-12-01',120.41],
+    ['2011-01-01',123.73],['2011-02-01',128.33],['2011-03-01',129.15],['2011-04-01',131.87],
+    ['2011-05-01',132.54],['2011-06-01',128.79],['2011-07-01',131.08],['2011-08-01',116.54],
+    ['2011-09-01',108.72],['2011-10-01',117.58],['2011-11-01',118.68],['2011-12-01',120.66],
+    ['2012-01-01',124.14],['2012-02-01',130.20],['2012-03-01',135.20],['2012-04-01',136.30],
+    ['2012-05-01',128.16],['2012-06-01',131.29],['2012-07-01',133.79],['2012-08-01',140.41],
+    ['2012-09-01',143.53],['2012-10-01',141.50],['2012-11-01',140.46],['2012-12-01',140.03],
+    ['2013-01-01',148.18],['2013-02-01',150.52],['2013-03-01',153.76],['2013-04-01',158.67],
+    ['2013-05-01',162.97],['2013-06-01',158.50],['2013-07-01',164.47],['2013-08-01',160.85],
+    ['2013-09-01',166.62],['2013-10-01',172.00],['2013-11-01',177.36],['2013-12-01',181.22],
+    ['2014-01-01',178.19],['2014-02-01',183.19],['2014-03-01',186.00],['2014-04-01',185.16],
+    ['2014-05-01',188.35],['2014-06-01',193.04],['2014-07-01',194.00],['2014-08-01',198.35],
+    ['2014-09-01',197.23],['2014-10-01',192.28],['2014-11-01',202.39],['2014-12-01',205.54],
+    ['2015-01-01',200.41],['2015-02-01',209.07],['2015-03-01',207.89],['2015-04-01',208.94],
+    ['2015-05-01',212.35],['2015-06-01',207.74],['2015-07-01',208.36],['2015-08-01',195.77],
+    ['2015-09-01',189.54],['2015-10-01',200.80],['2015-11-01',203.51],['2015-12-01',200.52],
+    ['2016-01-01',190.17],['2016-02-01',190.09],['2016-03-01',199.34],['2016-04-01',207.95],
+    ['2016-05-01',207.97],['2016-06-01',203.48],['2016-07-01',213.79],['2016-08-01',217.31],
+    ['2016-09-01',215.45],['2016-10-01',212.70],['2016-11-01',218.96],['2016-12-01',224.34],
+    ['2017-01-01',226.58],['2017-02-01',232.31],['2017-03-01',235.98],['2017-04-01',235.77],
+    ['2017-05-01',241.78],['2017-06-01',243.18],['2017-07-01',246.59],['2017-08-01',247.48],
+    ['2017-09-01',250.74],['2017-10-01',254.90],['2017-11-01',261.51],['2017-12-01',266.86],
+    ['2018-01-01',278.64],['2018-02-01',267.10],['2018-03-01',263.15],['2018-04-01',264.37],
+    ['2018-05-01',269.77],['2018-06-01',271.46],['2018-07-01',280.36],['2018-08-01',289.19],
+    ['2018-09-01',291.04],['2018-10-01',268.11],['2018-11-01',271.41],['2018-12-01',249.92],
+    ['2019-01-01',264.58],['2019-02-01',278.25],['2019-03-01',281.49],['2019-04-01',291.93],
+    ['2019-05-01',278.18],['2019-06-01',291.90],['2019-07-01',299.23],['2019-08-01',289.89],
+    ['2019-09-01',296.77],['2019-10-01',299.43],['2019-11-01',310.87],['2019-12-01',321.73],
+    ['2020-01-01',324.87],['2020-02-01',299.48],['2020-03-01',258.00],['2020-04-01',287.05],
+    ['2020-05-01',299.68],['2020-06-01',308.23],['2020-07-01',326.52],['2020-08-01',349.38],
+    ['2020-09-01',336.06],['2020-10-01',325.99],['2020-11-01',355.96],['2020-12-01',373.88],
+    ['2021-01-01',370.07],['2021-02-01',379.37],['2021-03-01',393.53],['2021-04-01',413.37],
+    ['2021-05-01',417.61],['2021-06-01',425.35],['2021-07-01',436.69],['2021-08-01',447.18],
+    ['2021-09-01',448.11],['2021-10-01',453.42],['2021-11-01',462.63],['2021-12-01',474.96],
+    ['2022-01-01',451.73],['2022-02-01',432.35],['2022-03-01',446.49],
+    ['2022-04-01',421.86],['2022-05-01',407.86],['2022-06-01',372.16],['2022-07-01',406.59],
+    ['2022-08-01',412.26],['2022-09-01',364.70],['2022-10-01',374.42],['2022-11-01',394.28],
+    ['2022-12-01',380.99],
+    ['2023-01-01',405.53],['2023-02-01',396.49],['2023-03-01',409.97],['2023-04-01',415.34],
+    ['2023-05-01',415.06],['2023-06-01',440.82],['2023-07-01',453.13],['2023-08-01',445.67],
+    ['2023-09-01',427.94],['2023-10-01',413.81],['2023-11-01',452.49],
+    ['2023-12-01',475.31],
+    ['2024-01-01',476.29],['2024-02-01',496.36],['2024-03-01',521.00],['2024-04-01',501.60],
+    ['2024-05-01',528.40],['2024-06-01',546.41],['2024-07-01',554.13],['2024-08-01',561.28],
+    ['2024-09-01',568.22],['2024-10-01',571.04],['2024-11-01',596.69],
+    ['2024-12-01',585.50],
+    ['2025-01-02',583.85],['2025-02-03',590.44],['2025-03-03',551.08],['2025-04-01',532.33],
+    ['2025-05-01',545.22],['2025-06-02',596.11],['2025-07-01',607.72],['2025-08-01',543.32],
+    ['2025-09-02',562.43],['2025-10-01',577.11],['2025-11-03',597.28],['2025-12-02',681.53],
+    ['2026-01-02',683.17],['2026-02-02',695.41],['2026-03-02',668.45],['2026-04-01',648.23],
+    ['2026-05-01',720.75],
+  ].filter(r => r.length === 2 && r[1]);  // remove any malformed entries
+
+  function loadSPY() {
+    // Seed with hardcoded data
+    spyData = SPY_HARDCODED.map(([date, value]) => ({ date, value }));
+
+    // Try to top-up with live data from Yahoo Finance
+    const p1 = Math.floor(new Date('2024-01-01').getTime() / 1000);
+    const p2 = Math.floor(Date.now() / 1000);
+    const tryUrl = url => fetch(url, { mode: 'cors' }).then(r => {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    });
+    const url1 = `https://query1.finance.yahoo.com/v8/finance/chart/SPY?period1=${p1}&period2=${p2}&interval=1d&corsDomain=finance.yahoo.com`;
+    const url2 = `https://query2.finance.yahoo.com/v8/finance/chart/SPY?period1=${p1}&period2=${p2}&interval=1d&corsDomain=finance.yahoo.com`;
+
+    return tryUrl(url1).catch(() => tryUrl(url2))
+      .then(json => {
+        const result = json?.chart?.result?.[0];
+        if (!result) return;
+        const timestamps = result.timestamp;
+        const closes = result.indicators.quote[0].close;
+        const seen = new Set(spyData.map(p => p.date.slice(0,7)));
+        for (let i = 0; i < timestamps.length; i++) {
+          const d = new Date(timestamps[i] * 1000);
+          const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          if (!seen.has(ym) && closes[i] != null) {
+            seen.add(ym);
+            const dateStr = `${ym}-${String(d.getDate()).padStart(2,'0')}`;
+            spyData.push({ date: dateStr, value: closes[i] });
+          }
+        }
+        spyData.sort((a, b) => a.date.localeCompare(b.date));
+      })
+      .catch(() => {}); // silently use hardcoded if live fetch fails
+  }
+
+  // ---- Load both Zillow CSV and SPY, then render ----
+  let zillowReady = false;
+  let spyReady = false;
+
+  function onBothReady() {
+    if (!zillowReady || !spyReady) return;
+    document.getElementById('status').textContent = '';
+    updateChart();
+    buildStats();
+    buildTable();
+  }
+
+  loadSPY().then(() => { spyReady = true; onBothReady(); });
+
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true,
+    complete: function(results) {
+      const rows = results.data;
+      const headers = results.meta.fields;
+      const metaCols = ['RegionID','SizeRank','RegionName','RegionType','StateName','State','City','Metro','CountyName'];
+      const dateCols = headers.filter(h => !metaCols.includes(h) && /^\d{4}-\d{2}-\d{2}$/.test(h));
+      ZIPS.forEach(z => {
+        const row = rows.find(r => r.RegionName === z.zip);
+        if (!row) return;
+        allData[z.zip] = dateCols
+          .map(d => ({ date: d, value: parseFloat(row[d]) }))
+          .filter(p => !isNaN(p.value));
+      });
+      zillowReady = true;
+      onBothReady();
+    },
+    error: function() {
+      document.getElementById('status').textContent =
+        '⚠ Could not load Zillow data. Check your internet connection.';
+    }
+  });
+
+  function filterByRange(series) {
+    const val = document.getElementById('rangeSelect').value;
+    if (val === 'all') return series;
+    if (val === 'sept2021') return series.filter(p => p.date >= '2021-09-01');
+    const years = parseInt(val);
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+    const cutStr = cutoff.toISOString().slice(0, 10);
+    return series.filter(p => p.date >= cutStr);
+  }
+
+  function updateChart() {
+    const activeList = ZIPS.filter(z => activeZips.has(z.zip));
+
+    // Collect all dates from zip codes
+    let allDates = new Set();
+    activeList.forEach(z => {
+      if (!allData[z.zip]) return;
+      filterByRange(allData[z.zip]).forEach(p => allDates.add(p.date));
+    });
+
+    // Add SPY dates too (only in relative mode)
+    if (spyActive && spyData.length && indexedMode) {
+      filterByRange(spyData).forEach(p => allDates.add(p.date));
+    }
+
+    const labels = [...allDates].sort();
+
+    // Build zip datasets
+    const datasets = activeList.map(z => {
+      const filtered = allData[z.zip] ? filterByRange(allData[z.zip]) : [];
+      const map = {};
+      filtered.forEach(p => map[p.date] = p.value);
+      let values = labels.map(d => map[d] ?? null);
+      if (indexedMode) {
+        const baseVal = values.find(v => v !== null);
+        if (baseVal) values = values.map(v => v !== null ? (v / baseVal) * 100 : null);
+      }
+      return {
+        label: `${z.zip} · ${z.name}`,
+        data: values,
+        borderColor: z.hex,
+        backgroundColor: z.hex + '15',
+        borderWidth: 2.7,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+        isSPY: false,
+      };
+    });
+
+    // Add SPY dataset (relative mode only)
+    if (spyActive && spyData.length && indexedMode) {
+      const filtered = filterByRange(spyData);
+      const map = {};
+      filtered.forEach(p => map[p.date] = p.value);
+      let values = labels.map(d => map[d] ?? null);
+      if (indexedMode) {
+        const baseVal = values.find(v => v !== null);
+        if (baseVal) values = values.map(v => v !== null ? (v / baseVal) * 100 : null);
+      }
+      datasets.push({
+        label: `SPY · S&P 500`,
+        data: values,
+        borderColor: SPY_META.hex,
+        backgroundColor: SPY_META.hex + '15',
+        borderWidth: 2.7,
+        borderDash: [6, 3],
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+        isSPY: true,
+      });
+    }
+
+    const tickLabels = labels.map((d, i) => {
+      if (d.endsWith('-01-31') || d.endsWith('-01-01') || (i === 0)) return d.slice(0, 4);
+      return '';
+    });
+
+    const yFormatter = indexedMode
+      ? v => v.toFixed(1) + '%'
+      : v => '$' + (v >= 1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'K');
+
+    const tooltipFormatter = item => {
+      const name = item.dataset.label.split(' · ')[1];
+      if (indexedMode) return `  ${name}: ${item.parsed.y.toFixed(1)}%`;
+      if (item.dataset.isSPY) return `  ${name}: $${item.parsed.y.toFixed(2)}`;
+      return `  ${name}: $${Math.round(item.parsed.y).toLocaleString()}`;
+    };
+
+    if (chart) {
+      chart.data.labels = labels;
+      chart.data.datasets = datasets;
+      chart.options.scales.x.ticks.callback = (_, i) => tickLabels[i] || '';
+      chart.options.scales.y.ticks.callback = yFormatter;
+      chart.options.plugins.tooltip.callbacks.label = tooltipFormatter;
+      chart.update();
+    } else {
+      const ctx = document.getElementById('myChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          layout: { padding: { right: 90 } },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { family: "'DM Mono', monospace", size: 15 },
+                padding: 24,
+                usePointStyle: true,
+                pointStyle: 'line',
+                pointStyleWidth: 24,
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1a1814',
+              titleFont: { family: "'DM Mono', monospace", size: 15 },
+              bodyFont:  { family: "'DM Mono', monospace", size: 15 },
+              callbacks: {
+                title: items => items[0].label,
+                label: tooltipFormatter,
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#e8dfc9' },
+              ticks: {
+                font: { family: "'DM Mono', monospace", size: 13 },
+                color: '#7a7060',
+                maxRotation: 0,
+                callback: (_, i) => tickLabels[i] || '',
+              }
+            },
+            y: {
+              grid: { color: '#e8dfc9' },
+              ticks: {
+                font: { family: "'DM Mono', monospace", size: 13 },
+                color: '#7a7060',
+                callback: yFormatter,
+              }
+            }
+          }
+        }
+      });
+    }
+
+    buildStats();
+  }
+
+  function buildStats() {
+    const grid = document.getElementById('statsGrid');
+    grid.innerHTML = '';
+    ZIPS.forEach(z => {
+      if (!allData[z.zip] || allData[z.zip].length === 0) return;
+      const series = allData[z.zip];
+      const latest = series[series.length - 1];
+      const oneYearAgo = series.find(p => p.date >= subtractMonths(latest.date, 12)) || series[0];
+      const pct = ((latest.value - oneYearAgo.value) / oneYearAgo.value * 100);
+      const dir = pct >= 0 ? 'up' : 'down';
+      const sign = pct >= 0 ? '+' : '';
+
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.style.borderTopColor = z.hex;
+      card.innerHTML = `
+        <div class="label">Typical Home Value</div>
+        <div class="zip-label">${z.zip} · ${z.name}</div>
+        <div class="value">$${Math.round(latest.value).toLocaleString()}</div>
+        <div class="delta ${dir}">${sign}${pct.toFixed(1)}% yr/yr · ${latest.date.slice(0,7)}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function buildTable() {
+    // Build snapshot rows dynamically: Sept 2021, then Jan for every year 2022→latest, then Latest
+    const allDates = Object.values(allData).flatMap(s => s.map(p => p.date));
+    const maxYear = allDates.length
+      ? Math.max(...allDates.map(d => parseInt(d.slice(0, 4))))
+      : new Date().getFullYear();
+
+    const snapshots = [{ label: 'Sept 2021', prefix: '2021-09' }];
+    for (let yr = 2022; yr <= maxYear; yr++) {
+      snapshots.push({ label: `Jan ${yr}`, prefix: `${yr}-01` });
+    }
+    snapshots.push({ label: 'Latest', prefix: null });
+
+    // Helper: find closest data point for a prefix (YYYY-MM)
+    function findValue(series, prefix) {
+      if (!series || series.length === 0) return null;
+      if (prefix === null) return series[series.length - 1];
+      // find first entry that starts with prefix, or nearest
+      const exact = series.find(p => p.date.startsWith(prefix));
+      if (exact) return exact;
+      // find closest by date
+      const target = new Date(prefix + '-15');
+      let closest = null;
+      let minDiff = Infinity;
+      series.forEach(p => {
+        const diff = Math.abs(new Date(p.date) - target);
+        if (diff < minDiff) { minDiff = diff; closest = p; }
+      });
+      return closest;
+    }
+
+    // Build header
+    const head = document.getElementById('tableHead');
+    head.innerHTML = '<th>Date</th>';
+    ZIPS.forEach(z => {
+      const th = document.createElement('th');
+      th.innerHTML = `
+        <span class="zip-code">${z.zip}</span>
+        <span class="zip-name">${z.name}</span>
+        <span class="color-bar" style="background:${z.hex}"></span>
+      `;
+      head.appendChild(th);
+    });
+
+    // Build body
+    const body = document.getElementById('tableBody');
+    body.innerHTML = '';
+
+    // Determine latest label for dynamic labeling
+    const latestDates = ZIPS.map(z => {
+      const s = allData[z.zip];
+      return s && s.length ? s[s.length-1].date : null;
+    }).filter(Boolean);
+    const latestDate = latestDates.length ? latestDates.sort().pop() : null;
+    const latestLabel = latestDate ? latestDate.slice(0,7).replace('-', '/') : 'Latest';
+
+    snapshots.forEach(snap => {
+      const tr = document.createElement('tr');
+      const isLatest = snap.prefix === null;
+      if (isLatest) tr.classList.add('highlight-row');
+
+      const rowLabel = isLatest ? `Latest (${latestLabel})` : snap.label;
+      const td0 = document.createElement('td');
+      td0.textContent = rowLabel;
+      if (isLatest) td0.classList.add('latest-label');
+      tr.appendChild(td0);
+
+      ZIPS.forEach(z => {
+        const td = document.createElement('td');
+        const point = findValue(allData[z.zip], snap.prefix);
+        if (point && !isNaN(point.value)) {
+          td.textContent = '$' + Math.round(point.value).toLocaleString();
+        } else {
+          td.textContent = '—';
+          td.classList.add('no-data');
+        }
+        tr.appendChild(td);
+      });
+
+      body.appendChild(tr);
+    });
+
+    // Growth summary footer: Sept 2021 → Latest
+    const foot = document.getElementById('tableFoot');
+    foot.innerHTML = '';
+    const ftd0 = document.createElement('td');
+    ftd0.textContent = 'Growth · Sept 2021 → Latest';
+    foot.appendChild(ftd0);
+
+    ZIPS.forEach(z => {
+      const ftd = document.createElement('td');
+      const base = findValue(allData[z.zip], '2021-09');
+      const latest = findValue(allData[z.zip], null);
+      if (base && latest && !isNaN(base.value) && !isNaN(latest.value)) {
+        const pct = ((latest.value - base.value) / base.value) * 100;
+        const sign = pct >= 0 ? '+' : '';
+        ftd.textContent = `${sign}${pct.toFixed(1)}%`;
+        ftd.classList.add(pct >= 0 ? 'growth-positive' : 'growth-negative');
+      } else {
+        ftd.textContent = '—';
+      }
+      foot.appendChild(ftd);
+    });
+  }
+
+  function subtractMonths(dateStr, months) {
+    const d = new Date(dateStr);
+    d.setMonth(d.getMonth() - months);
+    return d.toISOString().slice(0, 10);
+  }
+</script>
+</body>
+</html>
