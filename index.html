@@ -442,8 +442,8 @@
 <div class="chart-controls">
   <span class="toggle-label">Chart mode:</span>
   <div class="toggle-group">
-    <button class="toggle-btn active" id="modeActual">Actual</button>
-    <button class="toggle-btn" id="modeIndexed">Relative</button>
+    <button class="toggle-btn" id="modeActual">Actual</button>
+    <button class="toggle-btn active" id="modeIndexed">Relative</button>
   </div>
 </div>
 
@@ -485,7 +485,7 @@
     { zip: '90049', name: 'Brentwood',        hex: '#2c6e8a' },
     { zip: '90402', name: 'Santa Monica',      hex: '#c1440e' },
     { zip: '90272', name: 'Pacific Palisades', hex: '#4a7c59' },
-    { zip: '90265', name: 'Malibu',            hex: '#8a5a2c' },
+    { zip: '90210', name: 'Beverly Hills',      hex: '#8a5a2c' },
   ];
 
   const SPY_META = { key: 'SPY', name: 'S&P 500 (SPY)', hex: '#7c4a9e' };
@@ -497,7 +497,7 @@
   let activeZips = new Set(ZIPS.map(z => z.zip));
   let spyActive = true;
   let chart = null;
-  let indexedMode = false;
+  let indexedMode = true;
 
   // ---- Build ZIP buttons ----
   const grid = document.getElementById('zipGrid');
@@ -572,12 +572,14 @@
   const endLabelPlugin = {
     id: 'endLabels',
     afterDatasetsDraw(chart) {
-      const { ctx, chartArea: { right }, scales: { y } } = chart;
+      const { ctx, chartArea: { right } } = chart;
       ctx.save();
+
+      // First pass: collect label info for all visible datasets
+      const items = [];
       chart.data.datasets.forEach((ds, i) => {
         const meta = chart.getDatasetMeta(i);
         if (meta.hidden) return;
-        // Find last visible non-null point
         const points = meta.data;
         let lastPoint = null;
         for (let j = points.length - 1; j >= 0; j--) {
@@ -587,10 +589,6 @@
           }
         }
         if (!lastPoint) return;
-        const val = ds.data[chart.data.datasets[i] === ds
-          ? points.indexOf(lastPoint) : points.length - 1];
-
-        // Get the last non-null value
         let lastVal = null;
         for (let j = ds.data.length - 1; j >= 0; j--) {
           if (ds.data[j] !== null && ds.data[j] !== undefined) {
@@ -600,26 +598,42 @@
         }
         if (lastVal === null) return;
 
-        const yPos = lastPoint.y;
         const isSPY = ds.label.startsWith('SPY');
         const label = indexedMode
           ? lastVal.toFixed(1) + '%'
           : isSPY
             ? '$' + lastVal.toFixed(2)
             : '$' + (lastVal >= 1e6 ? (lastVal/1e6).toFixed(2)+'M' : Math.round(lastVal/1e3)+'K');
-
-        // Second line: zip code or ticker
         const zip = isSPY ? 'SPY' : ds.label.split(' · ')[0];
 
+        items.push({ color: ds.borderColor, label, zip, anchorY: lastPoint.y, y: lastPoint.y });
+      });
+
+      // Second pass: spread overlapping labels apart (each label block is ~26px tall)
+      const BLOCK = 26;
+      items.sort((a, b) => a.anchorY - b.anchorY);
+      // Push down
+      for (let i = 1; i < items.length; i++) {
+        const minY = items[i - 1].y + BLOCK;
+        if (items[i].y < minY) items[i].y = minY;
+      }
+      // Push up if any ran off the bottom, working backwards
+      for (let i = items.length - 2; i >= 0; i--) {
+        const maxY = items[i + 1].y - BLOCK;
+        if (items[i].y > maxY) items[i].y = maxY;
+      }
+
+      // Third pass: draw
+      items.forEach(({ color, label, zip, y }) => {
         ctx.font = "500 13px 'DM Mono', monospace";
-        ctx.fillStyle = ds.borderColor;
+        ctx.fillStyle = color;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(label, right + 6, yPos - 7);
-
+        ctx.fillText(label, right + 6, y - 7);
         ctx.font = "300 11px 'DM Mono', monospace";
-        ctx.fillText('(' + zip + ')', right + 6, yPos + 9);
+        ctx.fillText('(' + zip + ')', right + 6, y + 9);
       });
+
       ctx.restore();
     }
   };
