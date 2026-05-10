@@ -498,7 +498,14 @@
     This dashboard uses the <strong style="color:#1a1814;">top-tier cut</strong> (65th–100th percentile), meaning it tracks the upper segment of the market in each zip code — the higher-value homes, not the middle of the distribution. Values are <strong style="color:#1a1814;">smoothed and seasonally adjusted</strong> to reduce month-to-month noise.
   </p>
   <p style="font-size:0.75rem; color:#7a7060; line-height:1.7; margin-top:10px;">
-    The <strong style="color:#1a1814;">Relative</strong> chart mode re-indexes each zip code to 100% at the start of the selected period, allowing direct comparison of <em>growth rates</em> regardless of absolute price levels — this is where the <strong style="color:#7c4a9e;">SPY</strong> overlay is most useful, as it lets you compare home appreciation directly against S&P 500 returns. The <strong style="color:#1a1814;">Actual</strong> mode shows raw dollar values (SPY shown in share price). SPY data is the closing price on the first trading day of each month, sourced from Yahoo Finance.
+    The <strong style="color:#1a1814;">Relative</strong> chart mode re-indexes each zip code to 100% at the start of the selected period, allowing direct comparison of <em>growth rates</em> regardless of absolute price levels — this is where the <strong style="color:#7c4a9e;">SPY</strong> overlay is most useful, as it lets you compare home appreciation directly against S&P 500 returns. The <strong style="color:#1a1814;">Actual</strong> mode shows raw dollar values (SPY shown in share price).
+  </p>
+  <p style="font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; margin-top:16px; margin-bottom:8px; color:#1a1814;">About the Reference Data</p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7;">
+    <strong style="color:#1a1814;">SPY (S&amp;P 500 ETF):</strong> Monthly closing prices are the adjusted close on the first trading day of each month. Historical data through early 2024 is hardcoded; more recent months are fetched live from the <a href="https://finance.yahoo.com" target="_blank" style="color:var(--accent); text-decoration:none;">Yahoo Finance</a> chart API (<code>query1.finance.yahoo.com</code>). The value shown in the SPY card is the most recent month available.
+  </p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7; margin-top:10px;">
+    <strong style="color:#1a1814;">CPI-U (Consumer Price Index for All Urban Consumers):</strong> Series <code>CUUR0000SA0</code>, published monthly by the <a href="https://www.bls.gov/cpi/" target="_blank" style="color:var(--accent); text-decoration:none;">U.S. Bureau of Labor Statistics</a>. Fetched live from the BLS public API (<code>api.bls.gov</code>). The index is not seasonally adjusted and covers all items. The value shown is the most recent month released by the BLS.
   </p>
 </div>
 
