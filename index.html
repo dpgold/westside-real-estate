@@ -68,7 +68,7 @@
       gap: 12px;
       width: 100%;
       max-width: 640px;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
 
     .zip-btn {
@@ -111,6 +111,32 @@
       color: rgba(245,240,232,0.6);
     }
 
+    .zip-btn .spy-value {
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+      display: block;
+      color: var(--muted);
+    }
+
+    .zip-btn.active .spy-value {
+      color: rgba(245,240,232,0.6);
+    }
+
+    #spyBtn, #spyBtn.active {
+      background: white;
+      color: var(--ink);
+    }
+
+    #spyBtn .name, #spyBtn.active .name,
+    #spyBtn .spy-value, #spyBtn.active .spy-value {
+      color: var(--muted);
+    }
+
+    #spyBtn:not(.active) {
+      opacity: 0.45;
+    }
+
     .zip-btn .swatch {
       position: absolute;
       right: 14px;
@@ -126,7 +152,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 32px;
+      margin-bottom: 16px;
       font-size: 0.75rem;
       color: var(--muted);
       letter-spacing: 0.06em;
@@ -531,10 +557,11 @@
     btn.className = 'zip-btn active';
     btn.id = 'spyBtn';
     btn.style.borderTopColor = SPY_META.hex;
-    btn.style.display = 'none'; // hidden until relative mode
+    btn.style.display = '';
     btn.innerHTML = `
       <span class="code">SPY</span>
       <span class="name">S&amp;P 500 ETF</span>
+      <span class="spy-value"></span>
       <span class="swatch" style="background:${SPY_META.hex}"></span>
     `;
     btn.addEventListener('click', () => {
@@ -551,20 +578,66 @@
     btn.style.alignSelf = 'flex-end';
   })();
 
+  // ---- Reference row: SPY + CPI-U, placed between chart and stats ----
+  (function() {
+    const row = document.createElement('div');
+    row.id = 'refRow';
+    row.style.cssText = 'display:flex; gap:12px; width:100%; max-width:860px; margin-bottom:32px; justify-content:center;';
+
+    const spyBtn = document.getElementById('spyBtn');
+    spyBtn.style.cssText = 'border-top-color:' + SPY_META.hex + '; max-width:200px; margin-bottom:0; align-self:auto;';
+    row.appendChild(spyBtn);
+
+    const card = document.createElement('div');
+    card.className = 'zip-btn';
+    card.id = 'cpiCard';
+    card.style.cssText = 'border-top: 3px solid #2a7a5e; max-width:200px; cursor:default;';
+    card.innerHTML = `
+      <span class="code">CPI-U</span>
+      <span class="name">Urban Consumers</span>
+      <span class="spy-value" id="cpiValue">Loading…</span>
+      <span class="swatch" style="background:#2a7a5e"></span>
+    `;
+    row.appendChild(card);
+
+    // Insert between chart-wrap and stats-grid
+    const statsGrid = document.getElementById('statsGrid');
+    statsGrid.parentNode.insertBefore(row, statsGrid);
+  })();
+
+  function loadCPI() {
+    return fetch('https://api.bls.gov/publicAPI/v1/timeseries/data/CUUR0000SA0')
+      .then(r => r.json())
+      .then(json => {
+        const data = json?.Results?.series?.[0]?.data;
+        if (!data || !data.length) return;
+        const latest = data[0]; // newest first
+        const monthNum = parseInt(latest.period.replace('M', ''), 10);
+        const d = new Date(parseInt(latest.year), monthNum - 1, 1);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        document.getElementById('cpiValue').textContent = latest.value + ' · ' + dateStr;
+      })
+      .catch(() => {
+        document.getElementById('cpiValue').textContent = 'Unavailable';
+      });
+  }
+
+  loadCPI();
+
   document.getElementById('rangeSelect').addEventListener('change', updateChart);
 
   document.getElementById('modeActual').addEventListener('click', () => {
     indexedMode = false;
     document.getElementById('modeActual').classList.add('active');
     document.getElementById('modeIndexed').classList.remove('active');
-    document.getElementById('spyBtn').style.display = 'none';
+    // spyBtn always visible
     updateChart();
   });
   document.getElementById('modeIndexed').addEventListener('click', () => {
     indexedMode = true;
     document.getElementById('modeIndexed').classList.add('active');
     document.getElementById('modeActual').classList.remove('active');
-    document.getElementById('spyBtn').style.display = '';
+    // spyBtn always visible
     updateChart();
   });
 
@@ -744,7 +817,17 @@
     buildTable();
   }
 
-  loadSPY().then(() => { spyReady = true; onBothReady(); });
+  loadSPY().then(() => {
+    spyReady = true;
+    if (spyData.length) {
+      const latest = spyData[spyData.length - 1];
+      const d = new Date(latest.date + 'T00:00:00');
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      document.querySelector('#spyBtn .spy-value').textContent =
+        '$' + latest.value.toFixed(2) + ' · ' + dateStr;
+    }
+    onBothReady();
+  });
 
   Papa.parse(CSV_URL, {
     download: true,
