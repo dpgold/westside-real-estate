@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Warm cream background -->
+  <rect width="32" height="32" rx="5" fill="#F5F0E8"/>
+  <!-- House body (filled, light) -->
+  <path d="M7,17 L7,27 L25,27 L25,17 Z" fill="#c1440e" fill-opacity="0.15"/>
+  <!-- House outline + roof -->
+  <path d="M4,17 L16,6 L28,17 L25,17 L25,27 L7,27 L7,17 Z"
+        stroke="#c1440e" stroke-width="2.5" fill="none"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Door -->
+  <rect x="13" y="20" width="6" height="7" rx="1"
+        fill="#c1440e" fill-opacity="0.45"/>
+</svg>
