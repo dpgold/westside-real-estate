@@ -520,6 +520,31 @@
     { zip: '90402', name: 'Santa Monica',      hex: '#c1440e' },
     { zip: '90272', name: 'Pacific Palisades', hex: '#4a7c59' },
     { zip: '90210', name: 'Beverly Hills',      hex: '#8a5a2c' },
+    { zip: 'TORONTO', name: 'Toronto (CAD)',    hex: '#b5620a', manual: true },
+  ];
+
+  // ---- Toronto manual data (TRREB composite benchmark, all home types, CAD) ----
+  // Source: Toronto Regional Real Estate Board (trreb.ca) monthly market reports.
+  // Update by adding a new { date: 'YYYY-MM-DD', value: <benchmark price in CAD> } entry.
+  const TORONTO_DATA = [
+    { date: '2021-01-01', value: 963609 },
+    { date: '2021-04-01', value: 1022021 },
+    { date: '2021-07-01', value: 1062256 },
+    { date: '2021-10-01', value: 1155345 },
+    { date: '2022-01-01', value: 1259383 },
+    { date: '2022-04-01', value: 1326424 },
+    { date: '2022-07-01', value: 1074754 },
+    { date: '2022-10-01', value: 1014651 },
+    { date: '2023-01-01', value:  975816 },
+    { date: '2023-04-01', value: 1087431 },
+    { date: '2023-07-01', value: 1116950 },
+    { date: '2023-10-01', value: 1063116 },
+    { date: '2024-01-01', value: 1057248 },
+    { date: '2024-04-01', value: 1115669 },
+    { date: '2024-07-01', value: 1068553 },
+    { date: '2024-10-01', value: 1061724 },
+    { date: '2025-01-01', value: 1058765 },
+    { date: '2025-04-01', value: 1062800 },
   ];
 
   const SPY_META = { key: 'SPY', name: 'S&P 500 (SPY)', hex: '#7c4a9e' };
@@ -541,7 +566,7 @@
     btn.dataset.zip = z.zip;
     btn.style.borderTopColor = z.hex;
     btn.innerHTML = `
-      <span class="code">${z.zip}</span>
+      <span class="code">${z.manual ? 'Toronto' : z.zip}</span>
       <span class="name">${z.name}</span>
       <span class="swatch" style="background:${z.hex}"></span>
     `;
@@ -837,6 +862,9 @@
     onBothReady();
   });
 
+  // Inject manual series before Zillow CSV loads so they're always available
+  allData['TORONTO'] = TORONTO_DATA;
+
   Papa.parse(CSV_URL, {
     download: true,
     header: true,
@@ -846,6 +874,7 @@
       const metaCols = ['RegionID','SizeRank','RegionName','RegionType','StateName','State','City','Metro','CountyName'];
       const dateCols = headers.filter(h => !metaCols.includes(h) && /^\d{4}-\d{2}-\d{2}$/.test(h));
       ZIPS.forEach(z => {
+        if (z.manual) return; // skip manual series
         const row = rows.find(r => r.RegionName === z.zip);
         if (!row) return;
         allData[z.zip] = dateCols
