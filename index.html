@@ -35,24 +35,44 @@
     }
 
     header {
-      text-align: center;
-      margin-bottom: 48px;
+      width: 100%;
+      max-width: 1100px;
+      background: var(--sand);
+      border: 1px solid #d4c9b0;
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     header h1 {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.02em;
-      line-height: 1.1;
+      line-height: 1.2;
     }
 
-    header p {
-      margin-top: 10px;
+    .header-desc {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #d4c9b0;
       color: var(--muted);
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+
+    .header-desc a {
+      color: var(--accent);
+      text-decoration: none;
     }
 
     .divider {
@@ -441,13 +461,15 @@
 <body>
 
 <header>
-  <h1>Westside LA<br>Home Value Index</h1>
-  <div class="divider"></div>
-  <p>Single-family homes · Top-tier ZHVI by zip code · Zillow Research</p>
-  <p style="margin-top:8px; color:var(--muted); font-size:0.65rem; letter-spacing:0.04em;">
-    Series: <em>Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv</em> · ZHVI Single-Family Residences, Top-Tier (67th–100th pctile), Smoothed &amp; Seasonally Adjusted ·
-    Source: <a href="https://www.zillow.com/research/data/" target="_blank" style="color:var(--accent); text-decoration:none;">Zillow Research Data</a> (files.zillowstatic.com), updated monthly
-  </p>
+  <div class="header-top">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" style="border-radius:6px;flex-shrink:0;"><rect width="32" height="32" rx="4" fill="#990000"/><text x="16" y="22" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FFCC00" text-anchor="middle">DG</text></svg>
+    <h1>Westside LA · Home Value Index <span style="font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0;vertical-align:middle;">v1.0</span></h1>
+  </div>
+  <div class="header-desc">
+    Single-family homes · Top-tier ZHVI by zip code · Zillow Research ·
+    Series: <em>Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv</em> · ZHVI SFR Top-Tier (67th–100th pctile), Smoothed &amp; Seasonally Adjusted ·
+    Source: <a href="https://www.zillow.com/research/data/" target="_blank">Zillow Research Data</a>, updated monthly
+  </div>
 </header>
 
 <div id="status">Loading Zillow &amp; SPY data…</div>
