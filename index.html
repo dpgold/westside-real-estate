@@ -463,12 +463,7 @@
 <header>
   <div class="header-top">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" style="border-radius:6px;flex-shrink:0;"><rect width="32" height="32" rx="4" fill="#990000"/><text x="16" y="22" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#FFCC00" text-anchor="middle">DG</text></svg>
-    <h1>Westside LA · Home Value Index <span style="font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0;vertical-align:middle;">v1.0</span></h1>
-  </div>
-  <div class="header-desc">
-    Single-family homes · Top-tier ZHVI by zip code · Zillow Research ·
-    Series: <em>Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv</em> · ZHVI SFR Top-Tier (67th–100th pctile), Smoothed &amp; Seasonally Adjusted ·
-    Source: <a href="https://www.zillow.com/research/data/" target="_blank">Zillow Research Data</a>, updated monthly
+    <h1>Westside LA · Home Value Index <span style="font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0;vertical-align:middle;">v1.1</span></h1>
   </div>
 </header>
 
@@ -513,7 +508,11 @@
 </div>
 
 <div style="width:100%; max-width:860px; margin-top:28px; background:white; border:1.5px solid #e8dfc9; border-left:4px solid #c1440e; border-radius:4px; padding:20px 24px; box-sizing:border-box;">
-  <p style="font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; margin-bottom:8px; color:#1a1814;">About the Zillow Home Value Index (ZHVI)</p>
+  <p style="font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; margin-bottom:8px; color:#1a1814;">About this Dashboard</p>
+  <p style="font-size:0.75rem; color:#7a7060; line-height:1.7;">
+    This dashboard tracks home values for single-family homes in Westside LA zip codes using the <strong style="color:#1a1814;">Zillow Home Value Index (ZHVI)</strong> — specifically the top-tier cut (67th–100th percentile), smoothed and seasonally adjusted. Data is sourced from <a href="https://www.zillow.com/research/data/" target="_blank" style="color:var(--accent); text-decoration:none;">Zillow Research</a> (<code>files.zillowstatic.com</code>), series <code>Zip_zhvi_uc_sfr_tier_0.67_1.0_sm_sa_month.csv</code>, updated monthly.
+  </p>
+  <p style="font-family:'Playfair Display',serif; font-size:0.95rem; font-weight:700; margin-top:16px; margin-bottom:8px; color:#1a1814;">About the Zillow Home Value Index (ZHVI)</p>
   <p style="font-size:0.75rem; color:#7a7060; line-height:1.7;">
     The ZHVI is Zillow's estimate of the <strong style="color:#1a1814;">typical home value</strong> within a given region — not the median sale price. It is calculated from Zillow's Zestimate valuations across all homes in a zip code, not just those that recently sold, which makes it more stable and less susceptible to short-term fluctuations in sales mix.
   </p>
@@ -542,31 +541,6 @@
     { zip: '90402', name: 'Santa Monica',      hex: '#c1440e' },
     { zip: '90272', name: 'Pacific Palisades', hex: '#4a7c59' },
     { zip: '90210', name: 'Beverly Hills',      hex: '#8a5a2c' },
-    { zip: 'TORONTO', name: 'Toronto (CAD)',    hex: '#b5620a', manual: true },
-  ];
-
-  // ---- Toronto manual data (TRREB composite benchmark, all home types, CAD) ----
-  // Source: Toronto Regional Real Estate Board (trreb.ca) monthly market reports.
-  // Update by adding a new { date: 'YYYY-MM-DD', value: <benchmark price in CAD> } entry.
-  const TORONTO_DATA = [
-    { date: '2021-01-01', value: 963609 },
-    { date: '2021-04-01', value: 1022021 },
-    { date: '2021-07-01', value: 1062256 },
-    { date: '2021-10-01', value: 1155345 },
-    { date: '2022-01-01', value: 1259383 },
-    { date: '2022-04-01', value: 1326424 },
-    { date: '2022-07-01', value: 1074754 },
-    { date: '2022-10-01', value: 1014651 },
-    { date: '2023-01-01', value:  975816 },
-    { date: '2023-04-01', value: 1087431 },
-    { date: '2023-07-01', value: 1116950 },
-    { date: '2023-10-01', value: 1063116 },
-    { date: '2024-01-01', value: 1057248 },
-    { date: '2024-04-01', value: 1115669 },
-    { date: '2024-07-01', value: 1068553 },
-    { date: '2024-10-01', value: 1061724 },
-    { date: '2025-01-01', value: 1058765 },
-    { date: '2025-04-01', value: 1062800 },
   ];
 
   const SPY_META = { key: 'SPY', name: 'S&P 500 (SPY)', hex: '#7c4a9e' };
@@ -883,9 +857,6 @@
     }
     onBothReady();
   });
-
-  // Inject manual series before Zillow CSV loads so they're always available
-  allData['TORONTO'] = TORONTO_DATA;
 
   Papa.parse(CSV_URL, {
     download: true,
