@@ -13,7 +13,7 @@ An interactive dashboard tracking top-tier home values across Westside Los Angel
 
 ## Data
 
-- **Source:** Zillow Research — ZHVI (Zestimate Home Value Index), top-tier cut (65th–100th percentile)
+- **Source:** Zillow Research — ZHVI (Zestimate Home Value Index), top-tier cut (67th–100th percentile)
 - Tracks the upper segment of the market in each zip code, not just recently sold homes
 - Values are smoothed and seasonally adjusted
 - Single-family homes only
