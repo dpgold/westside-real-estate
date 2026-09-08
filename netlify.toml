@@ -1,2 +1,10 @@
 [build]
   publish = "."
+
+# The version badge and the outside-the-gate version check both read this file.
+# It MUST revalidate: a cached copy would report a stale number, which is worse
+# than reporting none.
+[[headers]]
+  for = "/version.js"
+  [headers.values]
+    Cache-Control = "no-cache"
